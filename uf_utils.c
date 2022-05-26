@@ -1,0 +1,52 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <getopt.h>
+
+const char* usage_msg = "Usage: %s SET_SIZE INSTRUCTION\n";
+
+const char* help_msg =
+    "Führt UnionFind für INSTRUCTION aus und gibt einen ASCII String mit den\n"
+    "Resultaten der Operationen aus.\n\n"
+    "SET_SIZE:    Anzahl der Datenpunkte D_i\n"
+    "INSTRUCTION: ASCII String, der eine Sequenz an Union/Find Anweisungen\n"
+    "             als 'U' und 'F' kodiert) enthält\n";
+
+
+void print_usage(const char* prog_name) {
+   fprintf(stderr, usage_msg, prog_name); 
+}
+
+void print_help(const char* prog_name) {
+    print_usage(prog_name);
+    fprintf(stderr, "\n%s", help_msg);
+}
+
+/* uint64_t getint(char* str) { */
+/*     int num = 0; */
+    
+/*     while (*str >= 0x30 && *str <= 0x39) { */
+/*         num = num * 10 + *str - 0x30; */
+/*         str++; */
+/*     } */
+
+/*     return num; */
+/* } */
+
+char* putint(uint64_t value, char* string) {
+    char* string_rev = (char*) malloc(24);
+    int size = 0;
+
+    while (value != 0) {
+        string_rev[size] = (value % 10) + 0x30;
+        value /= 10;
+        size++;
+    }
+
+    for (int i = 0; i < size; i++) string[i] = string_rev[size-i-1];
+    
+    free(string_rev);
+
+    return string + size;
+}
+
