@@ -22,17 +22,6 @@ void print_help(const char* prog_name) {
     fprintf(stderr, "\n%s", help_msg);
 }
 
-/* uint64_t getint(char* str) { */
-/*     int num = 0; */
-    
-/*     while (*str >= 0x30 && *str <= 0x39) { */
-/*         num = num * 10 + *str - 0x30; */
-/*         str++; */
-/*     } */
-
-/*     return num; */
-/* } */
-
 char* putint(uint64_t value, char* string) {
     char* string_rev = (char*) malloc(24);
     int size = 0;
