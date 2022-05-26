@@ -76,8 +76,7 @@ unionfind:
         lea rdi, [rsi + 1]
         call getint
         mov rbx, rax // rbx: first data point D_i
-        mov rsi, rdi
-        lea rdi, [rsi + 1]
+        inc rdi
         call getint
         mov rcx, rax // rcx: second data point D_j
         mov rsi, rdi
