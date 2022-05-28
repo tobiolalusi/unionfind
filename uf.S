@@ -58,12 +58,12 @@ unionfind:
     pop rsi
 
     // initialize data structure values
-    .LDSinitialize:
+    .LDSinit:
         dec rbx
         mov word ptr [r14 + rbx * 2], bx
         mov word ptr [r15 + rbx * 2], 0x1
         test rbx, rbx
-        jnz .LDSinitialize
+        jnz .LDSinit
 
     // parse command to function
     .Lparse_cmd:

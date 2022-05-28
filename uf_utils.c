@@ -23,19 +23,8 @@ void print_help(const char* prog_name) {
 }
 
 char* putint(uint64_t value, char* string) {
-    char* string_rev = (char*) malloc(24);
-    int size = 0;
-
-    while (value != 0) {
-        string_rev[size] = (value % 10) + 0x30;
-        value /= 10;
-        size++;
-    }
-
-    for (int i = 0; i < size; i++) string[i] = string_rev[size-i-1];
-    
-    free(string_rev);
-
-    return string + size;
+    sprintf(string, "%ld", value);
+    while (*string != '\0') string++;
+    return string;
 }
 
