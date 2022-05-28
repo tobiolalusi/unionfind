@@ -79,45 +79,56 @@ unionfind:
         sub rsp, 0x8
         // load parameters
         lea rdi, [rsi + 1]
-        call getint // `rdi` safe
+        call getint // `rdi` safe; rax: data point D_i
         add rsp, 0x8
         pop rdx
-        mov rcx, rax // rcx: data point D_i
         push rdi // pointer to next `insruction_string` char
         sub rsp, 0x8
-        mov r13, 0x0 // r13: traversed levels
+        xor r13, r13 // r13: traversed levels
         xor rdi, rdi // reset `rdi`
-        .Lfind_loop:
-            mov di, word ptr [r14 + rcx * 2] // rdi: D_i's tentative group G_i
-            test di, cx
-            jz .Lfind_loop_end
-        .Lfind_loop_end:
-            // write group G_i to `solution_string`
-            mov rsi, rdx
-            call putint
-            mov rdx, rax
-            // write traversed levels to `solution_string`
-            mov word ptr [rdx], 0x4c
-            inc rdx
-            mov rdi, r13
-            mov rsi, rdx
-            call putint
-            mov rdx, rax
+        call find
+        call write_solution
         add rsp, 0x8
         pop rsi
         jmp .Lparse_cmd
     
     // union
     .Lunion:
+        mov word ptr [rdx], 0x55 // write 'U' to `solution_string`
+        inc rdx
+        push rdx // pointer to next `solution_string` char
+        sub rsp, 0x8
         // load parameters
         lea rdi, [rsi + 1]
         call getint
         mov rbx, rax // rbx: first data point D_i
         inc rdi
-        call getint
-        mov rcx, rax // rcx: second data point D_j
-        mov rsi, rdi
-        // ...
+        call getint // rax: second data point D_j
+        add rsp, 0x8
+        pop rdx
+        push rdi
+        sub rsp, 0x8
+        xor r13, r13 // r13: traversed levels
+        xor rdi, rdi // reset `rdi`
+        call find // determine group of D_j
+        mov r9, rdi // r9: group G_j of D_j
+        mov r10, r13 // r10: traversed levels for D_j
+        mov rax, rbx
+        call find // determine group of D_i; 
+        // rdi: group G_i of D_i; r13: traversed levels for D_i
+        // determine parent and child group
+        mov ax, word ptr [r15 + rdi * 2] // G_i group size |G_i|
+        mov bx, word ptr [r15 + r9 * 2] // G_j group size |G_j|
+        cmp bx, ax
+        jng .Lunite_groups
+        // swap parameters ...
+        .Lunite_groups:
+        mov word ptr [r14 + r9 * 2], di
+        add word ptr [r15 + rdi * 2], bx
+        mov word ptr [r15 + r9 * 2], 0x0
+        call write_solution
+        add rsp, 0x8
+        pop rsi
         jmp .Lparse_cmd
     
     // cleanup program
@@ -136,4 +147,53 @@ unionfind:
     // exit program 
     ret
     // :) DONE!
+
+/**
+ * INPUT:
+ * ------
+ * rax: data point D_i to be found
+ * r14: G_i data structure
+ * r15: |G_i| data structure
+ *
+ * OUTPUT:
+ * -------
+ * rdi: group G_i of data point D_i
+ * r13: traversed levels
+ */
+find:
+    push rbp
+    mov di, word ptr [r14 + rax * 2] // rdi: D_i's tentative group G_i
+    test di, ax
+    jz .Lfind_end
+    // group not found ...
+    .Lfind_end:
+    pop rbp
+    ret
+
+/**
+ * INPUT:
+ * ------
+ * rdi: group G_i
+ * rdx: next pointer to `solution_string` char
+ * r13: traversed levels
+ *
+ * OUTPUT:
+ * -------
+ * rdx: next pointer to `solution_string` char
+ */
+write_solution:
+    push rbp
+    // write group G_i to `solution_string`
+    mov rsi, rdx
+    call putint
+    mov rdx, rax
+    // write traversed levels to `solution_string`
+    mov word ptr [rdx], 0x4c
+    inc rdx
+    mov rdi, r13
+    mov rsi, rdx
+    call putint
+    mov rdx, rax
+    pop rbp
+    ret
 
