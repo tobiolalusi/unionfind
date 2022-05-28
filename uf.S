@@ -7,6 +7,9 @@
 
 .global unionfind
 
+.section .rodata
+.align 16
+
 .section .text
 /**
  *
@@ -31,7 +34,7 @@ unionfind:
     mov rbp, rsp
 
     // preserve registers
-    sub rsp, 8
+    sub rsp, 0x8
     push rbx
     push r14
     push r15
@@ -42,15 +45,25 @@ unionfind:
     push rsi
     push rdx
     push rdi
-    sub rsp, 8
-    call malloc // reserve `set_size` bytes for group
+    mov rbx, rdi // bx: set_size
+    shl rdi, 0x1 // n ∈ [0, 65535] requires 2 bytes for representation
+    sub rsp, 0x8
+    call malloc // reserve memory for group G_i
     mov r14, rax // r14: group G_i
-    add rsp, 8
+    add rsp, 0x8
     pop rdi
-    call malloc // reserve `set_size` bytes for group size
+    call malloc // reserve memory for group size |G_i|
     mov r15, rax // r15: group size |G_i|
     pop rdx
     pop rsi
+
+    // initialize data structure values
+    .LDSinitialize:
+        dec rbx
+        mov word ptr [r14 + rbx * 2], bx
+        mov word ptr [r15 + rbx * 2], 0x1
+        test rbx, rbx
+        jnz .LDSinitialize
 
     // parse command to function
     .Lparse_cmd:
@@ -62,9 +75,13 @@ unionfind:
     
     // find
     .Lfind:
+        mov word ptr [rdx], 0x46
+        inc rdx
+        push rdx
         // load parameters
         lea rdi, [rsi + 1]
         call getint
+        pop rdx
         mov rcx, rax // rcx: data point D_i
         mov rsi, rdi
         // ...
@@ -94,7 +111,7 @@ unionfind:
         pop r15
         pop r14
         pop rbx
-        add rsp, 8
+        add rsp, 0x8
         // reset base pointer
         pop rbp
 
