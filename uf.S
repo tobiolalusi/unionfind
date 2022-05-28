@@ -25,6 +25,7 @@
  * ----------------
  * ASCII F: 0x46
  * ASCII U: 0x55
+ * ASCII L: 0x4C
  * ASCII &: 0x26
  *
  */
@@ -34,8 +35,8 @@ unionfind:
     mov rbp, rsp
 
     // preserve registers
-    sub rsp, 0x8
     push rbx
+    push r13
     push r14
     push r15
 
@@ -44,16 +45,13 @@ unionfind:
     // and then released after the memory allocation.
     push rsi
     push rdx
-    push rdi
-    mov rbx, rdi // bx: set_size
-    shl rdi, 0x1 // n ∈ [0, 65535] requires 2 bytes for representation
-    sub rsp, 0x8
-    call malloc // reserve memory for group G_i
-    mov r14, rax // r14: group G_i
-    add rsp, 0x8
-    pop rdi
-    call malloc // reserve memory for group size |G_i|
-    mov r15, rax // r15: group size |G_i|
+    mov rbx, rdi // rbx: `set_size`
+    shl rdi, 0x2 // both data structure, n ∈ [0, 65535] require 2 bytes for representation
+    call malloc // reserve memory for data structures
+    mov r14, rax // r14: pointer to group G_i
+    mov r15, rbx
+    shl r15, 0x1
+    add r15, r14 // r15: pointer to group size |G_i|
     pop rdx
     pop rsi
 
@@ -75,16 +73,38 @@ unionfind:
     
     // find
     .Lfind:
-        mov word ptr [rdx], 0x46
+        mov word ptr [rdx], 0x46 // write 'F' to `solution_string`
         inc rdx
-        push rdx
+        push rdx // pointer to next `solution_string` char
+        sub rsp, 0x8
         // load parameters
         lea rdi, [rsi + 1]
-        call getint
+        call getint // `rdi` safe
+        add rsp, 0x8
         pop rdx
         mov rcx, rax // rcx: data point D_i
-        mov rsi, rdi
-        // ...
+        push rdi // pointer to next `insruction_string` char
+        sub rsp, 0x8
+        mov r13, 0x0 // r13: traversed levels
+        xor rdi, rdi // reset `rdi`
+        .Lfind_loop:
+            mov di, word ptr [r14 + rcx * 2] // rdi: D_i's tentative group G_i
+            test di, cx
+            jz .Lfind_loop_end
+        .Lfind_loop_end:
+            // write group G_i to `solution_string`
+            mov rsi, rdx
+            call putint
+            mov rdx, rax
+            // write traversed levels to `solution_string`
+            mov word ptr [rdx], 0x4c
+            inc rdx
+            mov rdi, r13
+            mov rsi, rdx
+            call putint
+            mov rdx, rax
+        add rsp, 0x8
+        pop rsi
         jmp .Lparse_cmd
     
     // union
@@ -103,15 +123,13 @@ unionfind:
     // cleanup program
     .Lfinish:
         // free dynamically allocated memory
-        mov rdi, r15
-        call free
         mov rdi, r14
         call free
         // release preserved registers
         pop r15
         pop r14
+        pop r13
         pop rbx
-        add rsp, 0x8
         // reset base pointer
         pop rbp
 

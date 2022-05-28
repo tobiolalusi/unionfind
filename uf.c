@@ -7,8 +7,6 @@
 
 extern void unionfind(uint64_t set_size, char* instruction_string, char* solution_string);
 
-char* apply_unionfind(uint64_t set_size, char* instruction_string);
-
 int main(int argc, char** argv) {
     { // program argument parsing
         const char* prog_name = argv[0];
@@ -46,7 +44,7 @@ int main(int argc, char** argv) {
     uint64_t set_size = atol(argv[1]);
     char* instruction_string = argv[2];
 
-    char* solution_string = (char*) malloc(sizeof(instruction_string) << 1);
+    char* solution_string = (char*) malloc(131080);
 
     unionfind(set_size, instruction_string, solution_string);
 
