@@ -32,7 +32,6 @@
 unionfind:
     // setup base pointer
     push rbp
-    mov rbp, rsp
 
     // preserve registers
     push rbx
@@ -229,15 +228,20 @@ find:
     je .Lfind_end
 
     // recursive find with increasing traversed levels
+    push rdi
+    sub rsp, 0x8
     inc rsi
     mov rdi, rax
     call find
+    add rsp, 0x8
+    pop rdi
 
     .Lfind_end:
-        mov rdx, rsi
+    mov rdx, rsi
 
-    // relinking
-    
+    // relink
+    mov word ptr [r14 + rdi * 2], ax
+
     pop rbp
     ret
 
