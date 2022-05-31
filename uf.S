@@ -30,6 +30,11 @@
  *
  */
 unionfind:
+    test rdi, rdi
+    jnz .Lcont
+    ret
+
+    .Lcont:
     // setup base pointer
     push rbp
 
