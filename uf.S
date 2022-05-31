@@ -91,6 +91,7 @@ unionfind:
         push rdi // pointer to next `insruction_string` char
         push rdx // pointer to next `solution_string` char
         mov rdi, rax
+        xor rsi, rsi
         call find
         // rax: group G_i
         // rdx: D_i traversed levels
@@ -133,17 +134,19 @@ unionfind:
 
         // find group G_j of D_j
         mov rdi, rax
+        xor rsi, rsi
         call find
         push rdx // rdx: traversed levels for D_j
         push rax // rax: group G_j of D_j
 
         // find group G_i of D_i
         mov rdi, rbx
+        xor rsi, rsi
         call find
         // rax: group G_i of D_i
-        // rdi: traversed levels for D_i
+        // rdx: traversed levels for D_i
 
-        pop r9 // r9: group G_j of D_i
+        pop r9 // r9: group G_j of D_j
         pop r8 // r8: traversed level for D_j
 
         // determine parent and child group
@@ -151,7 +154,12 @@ unionfind:
         mov r11w, word ptr [r15 + r9 * 2] // G_j group size |G_j|
         cmp r10w, r11w
         jge .Lunite_groups
-        // swap parameters ...
+
+        // swap parameters when |G_i| < |G_j|
+        xchg rax, r9 // group
+        xchg rdx, r8 // traversed level
+        xchg r10, r11 // group size
+
         .Lunite_groups:
         mov word ptr [r14 + r9 * 2], ax // set D_j group to G_i
         add word ptr [r15 + rax * 2], r11w // increase group size of G_i
@@ -159,7 +167,8 @@ unionfind:
 
         // write solution
         mov rdi, rax
-        mov rsi, rdi
+        mov rsi, rdx
+        add rsi, r8 // really?? add both levels together?
         pop rdx
         sub rsp, 0x8
         call write_solution
@@ -191,6 +200,7 @@ unionfind:
  * r14: G_i data structure
  * r15: |G_i| data structure
  * rdi: data point D_i to be found
+ * rsi: initial traversed levels
  *
  * !!!NOTE!!!:
  * -----------
@@ -206,14 +216,18 @@ find:
     push rbp
 
     xor rax, rax
-    xor rdx, rdx
 
     mov ax, word ptr [r14 + rdi * 2] // rax: D_i's tentative group G_i
-    test ax, di
-    jz .Lfind_end
-    // group not found ...
+    cmp ax, di
+    je .Lfind_end
+
+    // recursive find with increasing traversed levels
+    inc rsi
+    mov rdi, rax
+    call find
 
     .Lfind_end:
+    mov rdx, rsi
     pop rbp
     ret
 
