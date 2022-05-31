@@ -153,6 +153,12 @@ unionfind:
         pop r9 // r9: group G_j of D_j
         pop r8 // r8: traversed level for D_j
 
+        // check if same group
+        cmp rax, r9
+        jne .L99
+        jmp .Lwrite_union_solution
+
+        .L99:
         // determine parent and child group
         mov r10w, word ptr [r15 + rax * 2] // G_i group size |G_i|
         mov r11w, word ptr [r15 + r9 * 2] // G_j group size |G_j|
@@ -169,16 +175,10 @@ unionfind:
         add word ptr [r15 + rax * 2], r11w // increase group size of G_i
         mov word ptr [r15 + r9 * 2], 0x0 // empty group size calculations for G_j
 
-        // set union traversed levels
-        inc r8
-        cmp r10w, 0x1
-        jne .Lwrite_union_solution
-        xor r8, r8
-
-        // write solution
         .Lwrite_union_solution:
         mov rdi, rax
         mov rsi, r8
+        add rsi, rdx
         pop rdx
         sub rsp, 0x8
         call write_solution
