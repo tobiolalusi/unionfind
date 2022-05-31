@@ -165,15 +165,22 @@ unionfind:
         add word ptr [r15 + rax * 2], r11w // increase group size of G_i
         mov word ptr [r15 + r9 * 2], 0x0 // empty group size calculations for G_j
 
+        // set union traversed levels
+        inc r8
+        cmp r10w, 0x1
+        jne .Lwrite_union_solution
+        xor r8, r8
+
         // write solution
+        .Lwrite_union_solution:
         mov rdi, rax
-        mov rsi, rdx
-        add rsi, r8 // really?? add both levels together?
+        mov rsi, r8
         pop rdx
         sub rsp, 0x8
         call write_solution
         mov rdx, rax
         add rsp, 0x8
+
         pop rsi
         jmp .Lparse_cmd
 
@@ -227,7 +234,10 @@ find:
     call find
 
     .Lfind_end:
-    mov rdx, rsi
+        mov rdx, rsi
+
+    // relinking
+    
     pop rbp
     ret
 
