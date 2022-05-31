@@ -13,9 +13,9 @@
 .section .text
 /**
  *
- * ------------------------
- * FUNCTION ARGUMENT GUIDE:
- * ------------------------
+ * -------------------------
+ * FUNCTION ARGUMENTS GUIDE:
+ * -------------------------
  * rdi: uint64_t set_size
  * rsi: char* instruction_string
  * rdx: char* solution_string
@@ -70,67 +70,104 @@ unionfind:
         cmp byte ptr [rsi], 0x55
         je .Lunion
         jmp .Lfinish
-    
+
     // find
     .Lfind:
-        mov word ptr [rdx], 0x46 // write 'F' to `solution_string`
+        // write 'F' to `solution_string`
+        mov word ptr [rdx], 0x46 // 'F'
         inc rdx
+
+        // load parameters
         push rdx // pointer to next `solution_string` char
         sub rsp, 0x8
-        // load parameters
         lea rdi, [rsi + 1]
-        call getint // `rdi` safe; rax: data point D_i
+        call getint
+        // rdi: pointer to next `insruction_string` char
+        // rax: data point D_i
         add rsp, 0x8
         pop rdx
+
+        // find group
         push rdi // pointer to next `insruction_string` char
-        sub rsp, 0x8
-        xor r13, r13 // r13: traversed levels
-        xor rdi, rdi // reset `rdi`
+        push rdx // pointer to next `solution_string` char
+        mov rdi, rax
         call find
+        // rax: group G_i
+        // rdx: D_i traversed levels
+
+        // write solution
+        mov rdi, rax
+        mov rsi, rdx
+        pop rdx
+        sub rsp, 0x8
         call write_solution
         add rsp, 0x8
-        pop rsi
+        mov rdx, rax // rdx: pointer to next `solution_string` char
+        pop rsi // pointer to next `instruction_string` char
+
         jmp .Lparse_cmd
-    
+
     // union
     .Lunion:
-        mov word ptr [rdx], 0x55 // write 'U' to `solution_string`
+        // write 'U' to `solution_string`
+        mov word ptr [rdx], 0x55 // 'U'
         inc rdx
+
+        // load first data point D_i parameters
         push rdx // pointer to next `solution_string` char
         sub rsp, 0x8
-        // load parameters
         lea rdi, [rsi + 1]
         call getint
         mov rbx, rax // rbx: first data point D_i
-        inc rdi
+
+        inc rdi // skip '&'
+
+        // load second data point D_j parameters
         call getint // rax: second data point D_j
         add rsp, 0x8
         pop rdx
-        push rdi
-        sub rsp, 0x8
-        xor r13, r13 // r13: traversed levels
-        xor rdi, rdi // reset `rdi`
-        call find // determine group of D_j
-        mov r9, rdi // r9: group G_j of D_j
-        mov r10, r13 // r10: traversed levels for D_j
-        mov rax, rbx
-        call find // determine group of D_i; 
-        // rdi: group G_i of D_i; r13: traversed levels for D_i
+
+        // find group of data points
+        push rdi // pointer to next `instruction_string` char
+        push rdx // pointer to next `solution_string` char
+
+        // find group G_j of D_j
+        mov rdi, rax
+        call find
+        push rdx // rdx: traversed levels for D_j
+        push rax // rax: group G_j of D_j
+
+        // find group G_i of D_i
+        mov rdi, rbx
+        call find
+        // rax: group G_i of D_i
+        // rdi: traversed levels for D_i
+
+        pop r9 // r9: group G_j of D_i
+        pop r8 // r8: traversed level for D_j
+
         // determine parent and child group
-        mov ax, word ptr [r15 + rdi * 2] // G_i group size |G_i|
-        mov bx, word ptr [r15 + r9 * 2] // G_j group size |G_j|
-        cmp bx, ax
-        jng .Lunite_groups
+        mov r10w, word ptr [r15 + rax * 2] // G_i group size |G_i|
+        mov r11w, word ptr [r15 + r9 * 2] // G_j group size |G_j|
+        cmp r10w, r11w
+        jge .Lunite_groups
         // swap parameters ...
         .Lunite_groups:
-        mov word ptr [r14 + r9 * 2], di
-        add word ptr [r15 + rdi * 2], bx
-        mov word ptr [r15 + r9 * 2], 0x0
+        mov word ptr [r14 + r9 * 2], ax // set D_j group to G_i
+        add word ptr [r15 + rax * 2], r11w // increase group size of G_i
+        mov word ptr [r15 + r9 * 2], 0x0 // empty group size calculations for G_j
+
+        // write solution
+        mov rdi, rax
+        mov rsi, rdi
+        pop rdx
+        sub rsp, 0x8
         call write_solution
+        mov rdx, rax
         add rsp, 0x8
         pop rsi
         jmp .Lparse_cmd
-    
+
     // cleanup program
     .Lfinish:
         // free dynamically allocated memory
@@ -149,23 +186,33 @@ unionfind:
     // :) DONE!
 
 /**
- * INPUT:
- * ------
- * rax: data point D_i to be found
+ * ARGUMENTS GUIDE:
+ * ----------------
  * r14: G_i data structure
  * r15: |G_i| data structure
+ * rdi: data point D_i to be found
+ *
+ * !!!NOTE!!!:
+ * -----------
+ * `r14` and `r15` are register constants used in this program and are
+ * hereby excluded from the calling convention palava
  *
  * OUTPUT:
  * -------
- * rdi: group G_i of data point D_i
- * r13: traversed levels
+ * rax: group G_i of data point D_i
+ * rdx: traversed levels
  */
 find:
     push rbp
-    mov di, word ptr [r14 + rax * 2] // rdi: D_i's tentative group G_i
-    test di, ax
+
+    xor rax, rax
+    xor rdx, rdx
+
+    mov ax, word ptr [r14 + rdi * 2] // rax: D_i's tentative group G_i
+    test ax, di
     jz .Lfind_end
     // group not found ...
+
     .Lfind_end:
     pop rbp
     ret
@@ -174,26 +221,32 @@ find:
  * INPUT:
  * ------
  * rdi: group G_i
- * rdx: next pointer to `solution_string` char
- * r13: traversed levels
+ * rsi: traversed levels
+ * rdx: pointer to next `solution_string` char
  *
  * OUTPUT:
  * -------
- * rdx: next pointer to `solution_string` char
+ * rax: pointer to next `solution_string` char
  */
 write_solution:
     push rbp
+
     // write group G_i to `solution_string`
+    push rsi
+    sub rsp, 0x8
     mov rsi, rdx
     call putint
-    mov rdx, rax
+    mov rdx, rax // rdx: pointer to next `solution_string` char
+    add rsp, 0x8
+    pop rsi
+
     // write traversed levels to `solution_string`
-    mov word ptr [rdx], 0x4c
+    mov word ptr [rdx], 0x4c // write 'L'
     inc rdx
-    mov rdi, r13
+    mov rdi, rsi
     mov rsi, rdx
     call putint
-    mov rdx, rax
+
     pop rbp
     ret
 
